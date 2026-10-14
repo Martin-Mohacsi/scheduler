@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SchedUler</title>
+<meta name="description" content="SchedUler: your schedule, tasks and progress in one place.">
+<meta name="theme-color" content="#11141c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SchedUler">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+/* Layout: single centered column (max 560px) under a sticky app bar; one dark look by design */
+:root {
+  --bg: #11141c;
+  --surface: #1a1f2b;
+  --surface-2: #232a39;
+  --line: #2e3647;
+  --fg: #eef0f6;
+  --muted: #9aa3b8;
+  --accent: #8fa3ff;
+  --accent-ink: #10142a;
+  --done: #f3b765;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--body); font-size: 16px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.bar-inner { max-width: 560px; margin: 0 auto; height: 60px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 12px; cursor: pointer; }
+.icon-btn:hover { background: var(--surface); }
+.icon-btn svg { width: 24px; height: 24px; stroke: var(--fg); }
+.brand { justify-self: center; background: none; border: 0; cursor: pointer; font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: -0.02em; padding: 4px 8px; }
+.brand span { color: var(--accent); }
+
+.menu { position: absolute; top: 56px; left: max(16px, env(safe-area-inset-left, 0px)); min-width: 200px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 6px; box-shadow: 0 16px 40px rgb(0 0 0 / .45); }
+.menu button { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 12px 14px; border-radius: 10px; cursor: pointer; font-weight: 500; }
+.menu button:hover { background: var(--surface); }
+.menu svg { width: 20px; height: 20px; stroke: var(--muted); }
+
+main {
+  max-width: 560px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 16px;
+  display: flex; flex-direction: column; gap: 28px;
+}
+.date-line { color: var(--muted); font-size: .95rem; }
+.date-line strong { color: var(--fg); font-weight: 600; }
+
+.days { display: flex; flex-direction: column; gap: 12px; }
+.tile { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; cursor: pointer; transition: background .15s, border-color .15s; }
+.tile:hover { background: var(--surface-2); border-color: #3a4459; }
+.tile-title { font-family: var(--display); font-weight: 600; font-size: 1.3rem; }
+.tile-sub { color: var(--muted); font-size: .88rem; }
+.tile.today { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.count { text-align: right; flex-shrink: 0; }
+.count b { font-family: var(--display); font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.count b em { font-style: normal; color: var(--muted); font-weight: 600; font-size: 1.1rem; }
+.count small { display: block; color: var(--muted); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; }
+.meter { height: 4px; background: var(--surface-2); border-radius: 4px; margin-top: 8px; width: 96px; margin-left: auto; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--done); width: 0; }
+
+.primary { width: 100%; border: 0; border-radius: 999px; padding: 16px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: transform .1s, filter .15s; }
+.primary:hover { filter: brightness(1.07); }
+.primary:active { transform: scale(.98); }
+
+.progress-tile .tile-title { display: flex; align-items: center; gap: 10px; }
+.chev { width: 22px; height: 22px; stroke: var(--muted); flex-shrink: 0; }
+
+.cal { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-head h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.15rem; }
+.cal-nav { display: flex; gap: 4px; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.dow { color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; padding: 6px 0; }
+.day { aspect-ratio: 1; max-width: 100%; border: 0; background: none; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.day:hover { background: var(--surface-2); }
+.day.other { color: #5c6478; }
+.day.is-today { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--done); visibility: hidden; }
+.day.has-tasks .dot { visibility: visible; }
+.today-btn { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .85rem; color: var(--muted); }
+.today-btn:hover { color: var(--fg); }
+
+footer { text-align: center; padding-block: 24px 32px; color: var(--muted); font-family: var(--display); font-weight: 600; font-size: 1.1rem; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.page { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; }
+.back { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 8px 0; }
+.back:hover { color: var(--fg); }
+.back svg { width: 20px; height: 20px; stroke: currentColor; }
+.page h1 { font-family: var(--display); font-weight: 800; font-size: 2rem; margin: 12px 0 8px; text-wrap: balance; }
+.placeholder { margin-top: 24px; border: 1px dashed var(--line); border-radius: 18px; padding: 40px 20px; text-align: center; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<header class="bar">
+  <div class="bar-inner">
+    <button class="icon-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <button class="brand" id="brand" aria-label="SchedUler, go to top of home">Sched<span>U</span>ler</button>
+    <span></span>
+  </div>
+  <div class="menu" id="menu" hidden>
+    <button data-go="login"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Login</button>
+    <button data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+  </div>
+</header>
+
+<div id="home">
+  <main>
+    <div class="date-line" id="dateLine"></div>
+
+    <section class="days" aria-label="Days">
+      <button class="tile today" data-go="today">
+        <div><div class="tile-title">Today's</div><div class="tile-sub" data-sub="0"></div></div>
+        <div class="count"><b>0<em> / 0</em></b><small>done</small><div class="meter"><i></i></div></div>
+      </button>
+      <button class="tile" data-go="tomorrow">
+        <div><div class="tile-title">Tomorrow's</div><div class="tile-sub" data-sub="1"></div></div>
+        <div class="count"><b>0<em> / 0</em></b><small>done</small><div class="meter"><i></i></div></div>
+      </button>
+      <button class="tile" data-go="yesterday">
+        <div><div class="tile-title">Yesterday's</div><div class="tile-sub" data-sub="-1"></div></div>
+        <div class="count"><b>0<em> / 0</em></b><small>done</small><div class="meter"><i></i></div></div>
+      </button>
+    </section>
+
+    <button class="primary" data-go="schedule">Schedule</button>
+
+    <button class="tile progress-tile" data-go="progresses">
+      <div><div class="tile-title">Progresses</div><div class="tile-sub">Your goals and connected apps</div></div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+
+    <section class="cal" aria-label="Calendar">
+      <div class="cal-head">
+        <h2 id="calTitle"></h2>
+        <div class="cal-nav">
+          <button class="today-btn" id="calToday">Today</button>
+          <button class="icon-btn" id="calPrev" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button>
+          <button class="icon-btn" id="calNext" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        </div>
+      </div>
+      <div class="grid" id="calGrid"></div>
+    </section>
+  </main>
+  <footer id="greeting"></footer>
+</div>
+
+<div id="sub" class="page" hidden>
+  <button class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>Home</button>
+  <h1 id="subTitle"></h1>
+  <div class="placeholder">This page will be designed next.</div>
+</div>
+
+<script>
+const GREETINGS = ["Have a nice day!", "Have a wonderful day!", "Have a great day!", "Have a lovely day!", "Have a fantastic day!", "Have a brilliant day!"];
+const TITLES = { today: "Today's", tomorrow: "Tomorrow's", yesterday: "Yesterday's", schedule: "Schedule", progresses: "Progresses", login: "Login", settings: "Settings" };
+const fmtLong = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+const fmtShort = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const fmtMonth = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
+
+// Tasks will come from real storage later; for now there are none.
+const tasksFor = () => [];
+
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const sameDay = (a, b) => a.toDateString() === b.toDateString();
+
+document.getElementById("dateLine").innerHTML = "<strong>" + fmtLong.format(today) + "</strong>";
+document.querySelectorAll("[data-sub]").forEach(el => { el.textContent = fmtShort.format(addDays(today, +el.dataset.sub)); });
+
+// Footer: one message per calendar day.
+const dayNumber = Math.floor((today.getTime() - today.getTimezoneOffset() * 60000) / 86400000);
+document.getElementById("greeting").textContent = GREETINGS[dayNumber % GREETINGS.length];
+
+// Calendar: month view, Monday first, today highlighted, dot on days with tasks.
+let view = new Date(today.getFullYear(), today.getMonth(), 1);
+function renderCal() {
+  document.getElementById("calTitle").textContent = fmtMonth.format(view);
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach(d => { const s = document.createElement("div"); s.className = "dow"; s.textContent = d; grid.appendChild(s); });
+  const offset = (view.getDay() + 6) % 7;
+  const start = addDays(view, -offset);
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(start, i);
+    if (i >= 35 && d.getMonth() !== view.getMonth()) break;
+    const b = document.createElement("button");
+    b.className = "day";
+    if (d.getMonth() !== view.getMonth()) b.classList.add("other");
+    if (sameDay(d, today)) b.classList.add("is-today");
+    if (tasksFor(d).length) b.classList.add("has-tasks");
+    b.innerHTML = d.getDate() + '<span class="dot"></span>';
+    b.setAttribute("aria-label", fmtLong.format(d));
+    b.addEventListener("click", () => openPage(fmtLong.format(d)));
+    grid.appendChild(b);
+  }
+}
+document.getElementById("calPrev").onclick = () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCal(); };
+document.getElementById("calNext").onclick = () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCal(); };
+document.getElementById("calToday").onclick = () => { view = new Date(today.getFullYear(), today.getMonth(), 1); renderCal(); };
+renderCal();
+
+// Navigation between home and placeholder pages.
+const home = document.getElementById("home"), sub = document.getElementById("sub");
+const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
+function closeMenu() { menu.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); }
+function openPage(title) { closeMenu(); document.getElementById("subTitle").textContent = title; home.hidden = true; sub.hidden = false; window.scrollTo(0, 0); }
+function goHome() { closeMenu(); sub.hidden = true; home.hidden = false; window.scrollTo({ top: 0, behavior: "smooth" }); }
+document.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", () => openPage(TITLES[el.dataset.go])));
+document.getElementById("brand").onclick = goHome;
+document.getElementById("back").onclick = goHome;
+menuBtn.onclick = e => { e.stopPropagation(); const open = menu.hidden; menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); };
+document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+
+// Lets the app be installed and open offline.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
