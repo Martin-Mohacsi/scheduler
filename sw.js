@@ -1,5 +1,5 @@
 // Network first, so updates show up right away; falls back to the cached copy when offline.
-const CACHE = "scheduler-v2";
+const CACHE = "scheduler-v3";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
