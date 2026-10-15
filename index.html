@@ -221,7 +221,7 @@ function renderCal() {
     if (tasksFor(d).length) b.classList.add("has-tasks");
     b.innerHTML = d.getDate() + '<span class="dot"></span>';
     b.setAttribute("aria-label", fmtLong.format(d));
-    b.addEventListener("click", () => openPage(fmtLong.format(d)));
+    b.addEventListener("click", () => navigate("day-" + isoDate(d)));
     grid.appendChild(b);
   }
 }
@@ -230,15 +230,48 @@ document.getElementById("calNext").onclick = () => { view = new Date(view.getFul
 document.getElementById("calToday").onclick = () => { view = new Date(today.getFullYear(), today.getMonth(), 1); renderCal(); };
 renderCal();
 
-// Navigation between home and placeholder pages.
+// Navigation. Every page gets its own browser history entry (#today, #day-2026-10-15, ...),
+// so back gestures, the Android back button and mouse/keyboard back all return to the previous page.
 const home = document.getElementById("home"), sub = document.getElementById("sub");
 const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
+const homeUrl = location.pathname + location.search;
+let homeScroll = 0;
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+function isoDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function titleFor(route) {
+  if (TITLES[route]) return TITLES[route];
+  const m = /^day-(\d{4})-(\d{2})-(\d{2})$/.exec(route);
+  if (m) return fmtLong.format(new Date(+m[1], +m[2] - 1, +m[3]));
+  return null;
+}
 function closeMenu() { menu.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); }
-function openPage(title) { closeMenu(); document.getElementById("subTitle").textContent = title; home.hidden = true; sub.hidden = false; window.scrollTo(0, 0); }
-function goHome() { closeMenu(); sub.hidden = true; home.hidden = false; window.scrollTo({ top: 0, behavior: "smooth" }); }
-document.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", () => openPage(TITLES[el.dataset.go])));
+function render() {
+  closeMenu();
+  const title = titleFor(decodeURIComponent(location.hash.slice(1)));
+  if (title) {
+    if (!home.hidden) homeScroll = window.scrollY;
+    document.getElementById("subTitle").textContent = title;
+    home.hidden = true; sub.hidden = false; window.scrollTo(0, 0);
+  } else {
+    sub.hidden = true; home.hidden = false; window.scrollTo(0, homeScroll);
+  }
+}
+function navigate(route) {
+  const depth = (history.state && history.state.depth) || 0;
+  history.pushState({ depth: depth + 1 }, "", "#" + route); render();
+}
+function goHome() {
+  // Pages opened inside the app are unwound in one step, so Home always lands on home.
+  if (home.hidden && history.state && history.state.depth) { history.go(-history.state.depth); return; }
+  if (home.hidden) { history.replaceState(null, "", homeUrl); homeScroll = 0; render(); return; }
+  closeMenu(); window.scrollTo({ top: 0, behavior: "smooth" });
+}
+window.addEventListener("popstate", render);
+document.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", () => navigate(el.dataset.go)));
 document.getElementById("brand").onclick = goHome;
 document.getElementById("back").onclick = goHome;
+render();
 menuBtn.onclick = e => { e.stopPropagation(); const open = menu.hidden; menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); };
 document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
