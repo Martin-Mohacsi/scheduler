@@ -153,7 +153,7 @@ footer { text-align: center; padding-block: 24px 32px; color: var(--muted); font
       </button>
     </section>
 
-    <button class="primary" data-go="schedule">Schedule</button>
+    <button class="primary" data-go="new-task">New task</button>
 
     <button class="tile progress-tile" data-go="progresses">
       <div><div class="tile-title">Progresses</div><div class="tile-sub">Your goals and connected apps</div></div>
@@ -183,7 +183,7 @@ footer { text-align: center; padding-block: 24px 32px; color: var(--muted); font
 
 <script>
 const GREETINGS = ["Have a nice day!", "Have a wonderful day!", "Have a great day!", "Have a lovely day!", "Have a fantastic day!", "Have a brilliant day!"];
-const TITLES = { today: "Today's", tomorrow: "Tomorrow's", yesterday: "Yesterday's", schedule: "Schedule", progresses: "Progresses", login: "Login", settings: "Settings" };
+const TITLES = { today: "Today's", tomorrow: "Tomorrow's", yesterday: "Yesterday's", "new-task": "New task", progresses: "Progresses", login: "Login", settings: "Settings" };
 const fmtLong = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const fmtShort = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
 const fmtMonth = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
